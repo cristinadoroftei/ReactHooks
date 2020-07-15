@@ -1,4 +1,4 @@
-import React, { useReducer , useEffect, useCallback } from "react";
+import React, { useReducer , useEffect, useCallback, useMemo } from "react";
 
 import IngredientForm from "./IngredientForm";
 import IngredientList from "./IngredientList.js";
@@ -46,7 +46,7 @@ const [httpState, dispatchHttp] = useReducer(httpReducer, {loading: false, error
     console.log("RENDERING INGREDIENTS", userIngredients);
   }, [userIngredients]);
 
-  const addIngredientHandler = (ingredient) => {
+  const addIngredientHandler = useCallback((ingredient) => {
     dispatchHttp({type: 'SEND'})
     fetch("https://react-hooks-update-ede58.firebaseio.com/ingredients.json", {
       method: "POST",
@@ -66,13 +66,13 @@ const [httpState, dispatchHttp] = useReducer(httpReducer, {loading: false, error
         // ]);
         dispatch({type: 'ADD', ingredient: { id: responseData.name, ...ingredient}})
       });
-  };
+  }, [])
 
   const filteredIngredientsHandler = useCallback((filteredIngredients) => {
     dispatch({type: 'SET', ingredients: filteredIngredients})
   }, []);
 
-  const removeIngredientsHandler = (ingredientId) => {
+  const removeIngredientsHandler = useCallback((ingredientId) => {
     dispatchHttp({type: 'SEND'})
     fetch(
       `https://react-hooks-update-ede58.firebaseio.com/ingredients/${ingredientId}.json`,
@@ -90,12 +90,21 @@ const [httpState, dispatchHttp] = useReducer(httpReducer, {loading: false, error
       .catch((err) => {
         dispatchHttp({type: 'ERROR', errorMessage: 'Something went wrong!!'})
       });
-  };
+  },[])
 
-  const clearError = () => {
+  const clearError = useCallback(() => {
     dispatchHttp({type: 'CLEAR'})
+  }, [])
 
-  };
+  const ingredientList = useMemo(() => {
+    return (
+      <IngredientList
+      ingredients={userIngredients}
+      onRemoveItem={removeIngredientsHandler}
+    />
+    )
+  }, [userIngredients, removeIngredientsHandler])
+
 
   return (
     <div className="App">
@@ -107,10 +116,7 @@ const [httpState, dispatchHttp] = useReducer(httpReducer, {loading: false, error
 
       <section>
         <Search onLoadIngredients={filteredIngredientsHandler} />
-        <IngredientList
-          ingredients={userIngredients}
-          onRemoveItem={removeIngredientsHandler}
-        />
+        {ingredientList}
       </section>
     </div>
   );
