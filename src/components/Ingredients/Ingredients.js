@@ -1,12 +1,27 @@
-import React, { useState , useEffect, useCallback } from "react";
+import React, { useReducer , useState, useEffect, useCallback } from "react";
 
 import IngredientForm from "./IngredientForm";
 import IngredientList from "./IngredientList.js";
 import Search from "./Search";
 import ErrorModal from "../UI/ErrorModal.js";
 
+//action is an object
+//when working with useReducer(), React will re-render the component whenever your reducer returns the new state
+const ingredientReducer = (currentIngredients, action) => {
+  switch (action.type) {
+    case 'SET':
+      return action.ingredients;
+    case 'DELETE':
+      return currentIngredients.filter(ing => ing.id !== action.id)
+    case 'ADD':
+      return [...currentIngredients, action.ingredient]
+    default:
+      throw new Error('Should not get there!')
+  }
+}  
 const Ingredients = () => {
-  const [userIngredients, setUserIngredients] = useState([]);
+ const [userIngredients, dispatch] = useReducer(ingredientReducer, [])
+  // const [userIngredients, setUserIngredients] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState();
 
@@ -28,30 +43,32 @@ const Ingredients = () => {
       })
       .then((responseData) => {
         //response.name contains the auto generated id provided by firebase. It's not javascript/React. This is how Firebase works
-        setUserIngredients((prevIngredients) => [
-          ...prevIngredients,
-          { id: responseData.name, ...ingredient },
-        ]);
+        // setUserIngredients((prevIngredients) => [
+        //   ...prevIngredients,
+        //   { id: responseData.name, ...ingredient },
+        // ]);
+        dispatch({type: 'ADD', ingredient: { id: responseData.name, ...ingredient}})
       });
   };
 
   const filteredIngredientsHandler = useCallback((filteredIngredients) => {
-    setUserIngredients(filteredIngredients);
+    dispatch({type: 'SET', ingredients: filteredIngredients})
   }, []);
 
   const removeIngredientsHandler = (ingredientId) => {
     setIsLoading(true);
     fetch(
-      `https://react-hooks-update-ede58.firebaseio.com/ingredients/${ingredientId}.jon`,
+      `https://react-hooks-update-ede58.firebaseio.com/ingredients/${ingredientId}.json`,
       {
         method: "DELETE",
       }
     )
       .then((response) => {
         setIsLoading(false);
-        setUserIngredients((preIngredients) =>
-          preIngredients.filter((ingredient) => ingredient.id !== ingredientId)
-        );
+        // setUserIngredients((preIngredients) =>
+        //   preIngredients.filter((ingredient) => ingredient.id !== ingredientId)
+        // );
+        dispatch({type: 'DELETE', id: ingredientId})
       })
       .catch((err) => {
         setError("Something went wrong!");
